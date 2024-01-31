@@ -31,6 +31,13 @@ jobs:
     - name: Conan version
       run: echo "${{ steps.conan.outputs.version }}"
 
+    - name: Cache
+      id: cache-conan
+      uses: actions/cache@v3.0.5
+      with:
+        path: ~/.conan
+        key: ${{ runner.os }}-conan-build-cache
+
     - name: Set up Clang
       uses: egor-tensin/setup-clang@v1
       with:
