@@ -42,3 +42,5 @@ link_libraries(${CONAN_LIBS})
 
 add_executable(HelloWorld src/main.cpp)
 
+include(CTest)
+enable_testing()
