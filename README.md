@@ -56,26 +56,14 @@ pip install conan
    conan profile detect --force
    ```
 
-3. **Instale as dependências:**
-   ```bash
-   conan install . --output-folder=build --build=missing
-   ```
-
-4. **Configure o projeto com CMake:**
-   ```bash
-   cmake --preset conan-default
-   ```
-
-   Ou manualmente:
+3. **Configure e compile o projeto:**
    ```bash
    mkdir build && cd build
-   cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
+   cmake .. -DCMAKE_BUILD_TYPE=Release
+   cmake --build .
    ```
 
-5. **Compile o projeto:**
-   ```bash
-   cmake --build build
-   ```
+> **📝 Nota Importante**: Este projeto usa integração automática CMake-Conan através do arquivo `cmake/conan.cmake`. Durante a configuração do CMake, as dependências do Conan são automaticamente instaladas com base na configuração atual de compilação. Não é necessário executar `conan install` manualmente.
 
 ## 🎮 Como Usar
 
@@ -130,6 +118,18 @@ boost-conan-cmake/
 | **Boost** | 1.84.0 | Biblioteca de utilidades C++ |
 | **fmt** | 10.2.1 | Formatação de strings moderna |
 | **Clang** | Latest | Compilador (CI/CD) |
+
+### Integração Automática CMake-Conan
+
+O projeto utiliza o arquivo `cmake/conan.cmake` para integração automática entre CMake e Conan. Durante a fase de configuração do CMake, o sistema:
+
+1. **Detecta automaticamente** as configurações do compilador atual (`conan_cmake_autodetect`)
+2. **Executa o Conan** com as configurações detectadas (`conan_cmake_run`)
+3. **Instala dependências faltantes** automaticamente (flag `BUILD missing`)
+4. **Configura variáveis** de ambiente para otimização (`-fdata-sections -ffunction-sections`)
+5. **Inclui bibliotecas** no projeto através do `conanbuildinfo.cmake` gerado
+
+Este processo elimina a necessidade de executar comandos `conan install` manualmente.
 
 ### Configurações Especiais
 
@@ -215,12 +215,13 @@ O projeto usa:
 
 Este projeto é ideal para aprender:
 
-1. **Gerenciamento de Dependências**: Como usar Conan para resolver bibliotecas C++
-2. **Build System Moderno**: Integração CMake + Conan
-3. **Boost Libraries**: Uso prático de Boost.Serialization
-4. **Formatação Moderna**: fmt como alternativa ao printf/iostream
-5. **CI/CD**: Automação com GitHub Actions
-6. **Boas Práticas**: Estrutura de projeto C++ moderna
+1. **Gerenciamento de Dependências**: Como usar Conan integrado automaticamente com CMake
+2. **Build System Moderno**: Integração CMake + Conan usando `cmake/conan.cmake`
+3. **Automação de Build**: Como eliminar passos manuais na configuração de dependências
+4. **Boost Libraries**: Uso prático de Boost.Serialization
+5. **Formatação Moderna**: fmt como alternativa ao printf/iostream
+6. **CI/CD**: Automação com GitHub Actions
+7. **Boas Práticas**: Estrutura de projeto C++ moderna com build automatizado
 
 ## 📄 Licença
 
