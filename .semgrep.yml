@@ -1,0 +1,111 @@
+# Semgrep configuration for boost-conan-cmake
+# Focuses on C++ security patterns and best practices
+
+rules:
+  # C++ Memory Safety
+  - id: cpp-buffer-overflow
+    patterns:
+      - pattern: strcpy($DST, $SRC)
+      - pattern: strcat($DST, $SRC)  
+      - pattern: sprintf($DST, $FMT, ...)
+      - pattern: gets($BUF)
+    message: "Potential buffer overflow - use safe alternatives"
+    languages: [cpp, c]
+    severity: HIGH
+    
+  - id: cpp-format-string
+    patterns:
+      - pattern: printf($VAR)
+      - pattern: fprintf($FILE, $VAR)
+      - pattern: sprintf($DST, $VAR)
+    message: "Format string vulnerability - use format specifiers"
+    languages: [cpp, c]
+    severity: MEDIUM
+    
+  # C++ Modern Safety
+  - id: cpp-raw-new-delete
+    patterns:
+      - pattern: new $TYPE(...)
+      - pattern: delete $PTR
+      - pattern: new $TYPE[...]
+      - pattern: delete[] $PTR
+    message: "Avoid raw new/delete - use smart pointers"
+    languages: [cpp]
+    severity: INFO
+    
+  - id: cpp-raw-pointers
+    patterns:
+      - pattern: $TYPE* $VAR = ...
+    message: "Consider using smart pointers instead of raw pointers"
+    languages: [cpp]
+    severity: INFO
+    
+  # C++ Exception Safety  
+  - id: cpp-catch-all
+    patterns:
+      - pattern: |
+          try {
+            ...
+          } catch (...) {
+            ...
+          }
+    message: "Avoid catch-all handlers - catch specific exceptions"
+    languages: [cpp]
+    severity: INFO
+    
+  # Build System Security
+  - id: cmake-shell-injection
+    patterns:
+      - pattern: execute_process(COMMAND $CMD ...)
+      - pattern: add_custom_command(COMMAND $CMD ...)
+    message: "Potential shell injection in CMake - validate inputs"
+    languages: [cmake]
+    severity: MEDIUM
+    
+  # General Security Patterns
+  - id: hardcoded-secrets
+    patterns:
+      - pattern: password = "$VALUE"
+      - pattern: api_key = "$VALUE" 
+      - pattern: secret = "$VALUE"
+      - pattern: token = "$VALUE"
+    message: "Potential hardcoded secret"
+    languages: [cpp, c]
+    severity: HIGH
+    
+  - id: system-calls
+    patterns:
+      - pattern: system($CMD)
+      - pattern: popen($CMD, $MODE)
+      - pattern: execl($PATH, ...)
+      - pattern: execv($PATH, $ARGS)
+    message: "System call detected - ensure input validation"
+    languages: [cpp, c]  
+    severity: MEDIUM
+
+# Path-based configuration
+paths:
+  include:
+    - src/
+    - include/
+    - CMakeLists.txt
+    - cmake/
+  exclude:
+    - build/
+    - cmake-build*/
+    - .git/
+    - vendor/
+    - third_party/
+    - node_modules/
+
+# Severity levels: ERROR, WARNING, INFO
+settings:
+  # Only report medium and above by default
+  min_severity: INFO
+  
+  # C++ specific settings
+  cpp:
+    # Enable modern C++ checks
+    enable_modern_checks: true
+    # C++ standard version
+    standard: "c++17"

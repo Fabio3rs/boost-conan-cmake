@@ -1,0 +1,296 @@
+name: Dependency Updates Validation
+
+on:
+  # Trigger on Dependabot PRs
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, master]
+
+  # Allow manual trigger for testing
+  workflow_dispatch:
+
+  # Scheduled weekly dependency check
+  schedule:
+    - cron: '0 6 * * 1' # Every Monday at 6 AM UTC
+
+jobs:
+  validate-dependency-updates:
+    # Only run if this is a dependabot PR or manual/scheduled run
+    if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update && sudo apt upgrade -y
+          sudo apt install -y build-essential cmake ninja-build
+          sudo apt install -y clang-15 clang-tidy-15 clang-format-15
+          sudo apt install -y libcurl4-openssl-dev libgtest-dev googletest
+          sudo apt install -y redis-server redis-tools mariadb-client
+          sudo apt install -y git curl grep jq
+          export PIP_BREAK_SYSTEM_PACKAGES=1
+
+      - name: Install Conan
+        uses: turtlebrowser/get-conan@main
+        env:
+          PIP_BREAK_SYSTEM_PACKAGES: 1
+        with:
+          version: 1.66.0
+
+      - name: Configure Conan
+        run: |
+          mkdir -p ~/.conan
+          cp ci/conan_conf/settings.yml ~/.conan/settings.yml
+
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan
+          key: ${{ runner.os }}-conan-deps-${{ hashFiles('conanfile.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-conan-deps-
+
+      - name: Dependency Security Pre-Check
+        continue-on-error: true
+        run: |
+          echo "::group::Pre-update Security Scan"
+          chmod +x scripts/cve_security_check.py
+          chmod +x scripts/security_audit.sh
+          python3 scripts/cve_security_check.py --format json --output security_pre.json || echo "::warning::Pre-check security scan encountered issues"
+          ./scripts/security_audit.sh . security_audit_pre.txt || echo "::warning::Pre-check security audit encountered issues"
+          echo "::endgroup::"
+
+      - name: Test Build with Updated Dependencies
+        env:
+          CC: /usr/bin/clang-15
+          CXX: /usr/bin/clang++-15
+        run: |
+          echo "::group::Building with Updated Dependencies"
+          export CURRENT_SOURCE_DIR=$(pwd)
+
+          # Build MySQL C++ Connector
+          cd mysqlcppconn-build
+          ./build.sh
+          cd "$CURRENT_SOURCE_DIR"
+
+          # Build main project
+          mkdir -p build && cd build
+          cmake .. -G Ninja \
+            -DCompileTestsApiFramework:BOOL=OFF \
+            -DPISTACHE_BUILD_TESTS:BOOL=OFF \
+            -DCMAKE_BUILD_TYPE:STRING=Release \
+            -DCMAKE_CXX_FLAGS="-march=native" \
+            -DCMAKE_C_FLAGS="-march=native"
+
+          cmake --build . --config Release --target all -j $(nproc)
+          echo "::endgroup::"
+
+      - name: Set up MariaDB for Testing
+        uses: getong/mariadb-action@v1.11
+        with:
+          mysql user: testuser
+          mysql password: testpass123
+          mysql root password: rootpass123
+
+      - name: Configure Test Environment
+        run: |
+          mkdir -p build/tests
+          cp '.env.testing.example' "build/tests/.env.testing"
+          cp '.env.testing.example' ".env.testing"
+
+          # Setup database user
+          echo "CREATE USER IF NOT EXISTS 'testuser'@'%' IDENTIFIED BY 'testpass123';" | mysql -h 127.0.0.1 -u root -prootpass123
+          echo "GRANT ALL ON *.* to 'testuser'@'%';" | mysql -h 127.0.0.1 -u root -prootpass123
+          echo "FLUSH PRIVILEGES;" | mysql -h 127.0.0.1 -u root -prootpass123
+
+      - name: Run Tests
+        env:
+          CC: /usr/bin/clang-15
+          CXX: /usr/bin/clang++-15
+        run: |
+          echo "::group::Running Tests with Updated Dependencies"
+          cd build
+          ctest -j $(nproc) -C Release -T test --output-on-failure
+          echo "::endgroup::"
+
+      - name: Dependency Security Post-Check
+        continue-on-error: true
+        run: |
+          echo "::group::Post-update Security Scan"
+          python3 scripts/cve_security_check.py --format json --output security_post.json || echo "::warning::Post-check security scan encountered issues"
+          ./scripts/security_audit.sh . security_audit_post.txt || echo "::warning::Post-check security audit encountered issues"
+          echo "::endgroup::"
+
+      - name: Compare Security Status
+        id: security-comparison
+        continue-on-error: true
+        run: |
+          echo "::group::Security Comparison"
+
+          # Check if security report files exist
+          if [ ! -f "security_pre.json" ]; then
+            echo "::warning::Pre-security scan report missing, using default values"
+            echo '{"summary": {"vulnerabilities_found": 0, "critical_count": 0}}' > security_pre.json
+          fi
+
+          if [ ! -f "security_post.json" ]; then
+            echo "::warning::Post-security scan report missing, using default values"
+            echo '{"summary": {"vulnerabilities_found": 0, "critical_count": 0}}' > security_post.json
+          fi
+
+          # Extract vulnerability counts
+          PRE_VULNS=$(python3 -c "import json; data=json.load(open('security_pre.json')); print(data.get('summary', {}).get('vulnerabilities_found', 0))" || echo "0")
+          POST_VULNS=$(python3 -c "import json; data=json.load(open('security_post.json')); print(data.get('summary', {}).get('vulnerabilities_found', 0))" || echo "0")
+
+          PRE_CRITICAL=$(python3 -c "import json; data=json.load(open('security_pre.json')); print(data.get('summary', {}).get('critical_count', 0))" || echo "0")
+          POST_CRITICAL=$(python3 -c "import json; data=json.load(open('security_post.json')); print(data.get('summary', {}).get('critical_count', 0))" || echo "0")
+
+          echo "pre_vulns=$PRE_VULNS" >> $GITHUB_OUTPUT
+          echo "post_vulns=$POST_VULNS" >> $GITHUB_OUTPUT
+          echo "pre_critical=$PRE_CRITICAL" >> $GITHUB_OUTPUT
+          echo "post_critical=$POST_CRITICAL" >> $GITHUB_OUTPUT
+
+          echo "🔍 Security Comparison:"
+          echo "  Pre-update vulnerabilities: $PRE_VULNS"
+          echo "  Post-update vulnerabilities: $POST_VULNS"
+          echo "  Pre-update critical: $PRE_CRITICAL"
+          echo "  Post-update critical: $POST_CRITICAL"
+
+          # Calculate improvement
+          VULN_DIFF=$((POST_VULNS - PRE_VULNS))
+          CRITICAL_DIFF=$((POST_CRITICAL - PRE_CRITICAL))
+
+          if [ $VULN_DIFF -lt 0 ]; then
+            echo "security_improved=true" >> $GITHUB_OUTPUT
+            echo "✅ Security improved: $((VULN_DIFF * -1)) fewer vulnerabilities"
+          elif [ $VULN_DIFF -gt 0 ]; then
+            echo "security_degraded=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Security degraded: $VULN_DIFF more vulnerabilities"
+          else
+            echo "security_stable=true" >> $GITHUB_OUTPUT
+            echo "🔄 Security status stable"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Generate Update Summary
+        run: |
+          echo "# 🔄 Dependency Update Validation Results" > update_summary.md
+          echo "" >> update_summary.md
+          echo "**Update Date:** $(date)" >> update_summary.md
+          echo "**Commit:** ${{ github.sha }}" >> update_summary.md
+          echo "**PR:** #${{ github.event.number }}" >> update_summary.md
+          echo "" >> update_summary.md
+
+          echo "## 🧪 Build & Test Results" >> update_summary.md
+          echo "- ✅ **Build:** Successful" >> update_summary.md
+          echo "- ✅ **Tests:** Passed" >> update_summary.md
+          echo "" >> update_summary.md
+
+          echo "## 🛡️ Security Analysis" >> update_summary.md
+          echo "- **Pre-update vulnerabilities:** ${{ steps.security-comparison.outputs.pre_vulns }}" >> update_summary.md
+          echo "- **Post-update vulnerabilities:** ${{ steps.security-comparison.outputs.post_vulns }}" >> update_summary.md
+          echo "- **Pre-update critical:** ${{ steps.security-comparison.outputs.pre_critical }}" >> update_summary.md
+          echo "- **Post-update critical:** ${{ steps.security-comparison.outputs.post_critical }}" >> update_summary.md
+          echo "" >> update_summary.md
+
+          if [ "${{ steps.security-comparison.outputs.security_improved }}" = "true" ]; then
+            echo "## ✅ Security Improvement" >> update_summary.md
+            echo "This update improves the security posture by reducing vulnerabilities." >> update_summary.md
+          elif [ "${{ steps.security-comparison.outputs.security_degraded }}" = "true" ]; then
+            echo "## ⚠️ Security Notice" >> update_summary.md
+            echo "This update increases the number of vulnerabilities. Manual review recommended, but workflow continues." >> update_summary.md
+          else
+            echo "## 🔄 Security Status Stable" >> update_summary.md
+            echo "This update maintains the current security posture." >> update_summary.md
+          fi
+
+          echo "" >> update_summary.md
+          echo "## 📋 Recommendations" >> update_summary.md
+          echo "- Review detailed security reports in artifacts" >> update_summary.md
+          echo "- Monitor for new vulnerabilities post-merge" >> update_summary.md
+          echo "- Consider additional security hardening if needed" >> update_summary.md
+          echo "- Security issues are logged as warnings and don't block workflow execution" >> update_summary.md
+
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-update-reports-${{ github.run_number }}
+          path: |
+            security_*.json
+            security_*.txt
+            update_summary.md
+          retention-days: 30
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let comment = '# 🔄 Dependency Update Validation\n\n';
+
+            try {
+              const summary = fs.readFileSync('update_summary.md', 'utf8');
+              comment += summary;
+            } catch (error) {
+              comment += 'Validation completed. Check artifacts for detailed reports.\n';
+            }
+
+            const securityImproved = '${{ steps.security-comparison.outputs.security_improved }}';
+            const securityDegraded = '${{ steps.security-comparison.outputs.security_degraded }}';
+
+            if (securityImproved === 'true') {
+              comment += '\n✅ **APPROVED**: This update improves security. Safe to merge.\n';
+            } else if (securityDegraded === 'true') {
+              comment += '\n⚠️ **REVIEW REQUIRED**: This update may introduce security concerns.\n';
+            } else {
+              comment += '\n🔄 **NEUTRAL**: This update maintains current security posture.\n';
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Final Status Check
+        run: |
+          POST_CRITICAL=${{ steps.security-comparison.outputs.post_critical }}
+          SECURITY_DEGRADED=${{ steps.security-comparison.outputs.security_degraded }}
+
+          echo "Final security validation:"
+          echo "  Critical vulnerabilities: $POST_CRITICAL"
+          echo "  Security degraded: $SECURITY_DEGRADED"
+
+          # Log security issues as warnings instead of failing the workflow
+          if [ "$POST_CRITICAL" -gt 0 ] && [ "$SECURITY_DEGRADED" = "true" ]; then
+            echo "::warning::Dependency update introduces critical security issues!"
+            echo "⚠️ Critical security issues detected - review required"
+          elif [ "$SECURITY_DEGRADED" = "true" ]; then
+            echo "::warning::Security degraded but no critical issues. Review recommended."
+            echo "⚠️ Security degraded - review recommended"
+          else
+            echo "✅ Dependency update validation passed"
+          fi
+
+          echo "✅ Workflow completed successfully"

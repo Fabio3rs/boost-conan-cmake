@@ -1,0 +1,80 @@
+# GitHub Dependabot Configuration for boost-conan-cmake
+# This file configures automated dependency updates and security vulnerability alerts
+
+version: 2
+updates:
+  # Monitor Dockerfile for base image updates with security focus
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "02:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "tefway"
+    assignees:
+      - "tefway"
+    commit-message:
+      prefix: "docker"
+      prefix-development: "docker(dev)"
+      include: "scope"
+    # Only allow security updates and version updates for critical dependencies
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    # Group updates for better PR management
+    groups:
+      ubuntu-security:
+        patterns:
+          - "ubuntu*"
+        update-types:
+          - "patch"
+          - "minor"
+
+  # Monitor Git submodules for security updates with higher frequency
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "tefway"
+    assignees:
+      - "tefway"
+    commit-message:
+      prefix: "submodule"
+      prefix-development: "submodule(dev)"
+      include: "scope"
+    # Enable security updates for submodules
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+
+  # Monitor GitHub Actions workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "04:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "tefway"
+    assignees:
+      - "tefway"
+    commit-message:
+      prefix: "ci"
+      prefix-development: "ci(dev)"
+      include: "scope"
+    # Group CI-related updates
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"

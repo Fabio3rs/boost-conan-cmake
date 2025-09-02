@@ -1,0 +1,234 @@
+name: Lambda Package and Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake ninja-build
+        sudo apt-get install -y clang-18 clang++-18
+
+    - name: Install Conan
+      uses: turtlebrowser/get-conan@main
+      with:
+        version: 2.0.14
+
+    - name: Cache Conan packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.conan2
+        key: ${{ runner.os }}-conan-${{ hashFiles('conanfile.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-conan-
+
+    - name: Configure CMake
+      env:
+        CC: /usr/bin/clang-18
+        CXX: /usr/bin/clang++-18
+      run: |
+        mkdir -p build && cd build
+        conan install .. --output-folder=. --build=missing --settings=build_type=${{env.BUILD_TYPE}}
+        cmake .. -G Ninja \
+          -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake \
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+          -DCMAKE_CXX_FLAGS="-std=c++20 -march=native -fdata-sections -ffunction-sections" \
+          -DCMAKE_EXE_LINKER_FLAGS="-Wl,--gc-sections"
+
+    - name: Build Application  
+      env:
+        CC: /usr/bin/clang-18
+        CXX: /usr/bin/clang++-18
+      run: |
+        cd build
+        cmake --build . --config ${{env.BUILD_TYPE}} -j$(nproc)
+
+    - name: Package for Lambda (Full libc - Recommended)
+      run: |
+        chmod +x scripts/packager
+        ./scripts/packager build/HelloWorld
+        mkdir -p packages/full-libc
+        cp -r built/* packages/full-libc/
+        echo "📦 Full libc package created (recommended for cross-platform compatibility)"
+
+    - name: Package for Lambda (Default libc - Testing only)
+      run: |
+        ./scripts/packager --default-libc build/HelloWorld
+        mkdir -p packages/default-libc
+        cp -r built/* packages/default-libc/
+        echo "📦 Default libc package created (testing only)"
+
+    - name: Test Packages
+      run: |
+        echo "🧪 Testing packages..."
+        
+        # Test full-libc package (recommended)
+        echo "Testing full-libc package (recommended):"
+        cd packages/full-libc  
+        if [ -f bootstrap ]; then
+          echo "✅ Bootstrap script found"
+          chmod +x bootstrap
+          ls -la
+          echo "📋 Library dependencies:"
+          ls -la lib/ | head -10
+        fi
+        cd ../..
+        
+        # Test default-libc package (testing only)
+        echo "Testing default-libc package (testing only):"
+        cd packages/default-libc
+        if [ -f bootstrap ]; then
+          echo "✅ Bootstrap script found"
+          chmod +x bootstrap
+          ls -la
+          echo "📋 Library dependencies:"
+          ls -la lib/ | head -10
+        fi
+        cd ../..
+
+    - name: Generate Package Info
+      run: |
+        echo "# Lambda Package Information" > PACKAGE_INFO.md
+        echo "Built: $(date)" >> PACKAGE_INFO.md
+        echo "Commit: ${{ github.sha }}" >> PACKAGE_INFO.md
+        echo "" >> PACKAGE_INFO.md
+        
+        echo "## Full libc Package (Recommended)" >> PACKAGE_INFO.md
+        echo "- Size: $(du -sh packages/full-libc | cut -f1)" >> PACKAGE_INFO.md  
+        echo "- Libraries: $(ls packages/full-libc/lib/ | wc -l)" >> PACKAGE_INFO.md
+        echo "- Includes: Ubuntu glibc for maximum compatibility" >> PACKAGE_INFO.md
+        echo "" >> PACKAGE_INFO.md
+        
+        echo "## Default libc Package (Testing Only)" >> PACKAGE_INFO.md
+        echo "- Size: $(du -sh packages/default-libc | cut -f1)" >> PACKAGE_INFO.md
+        echo "- Libraries: $(ls packages/default-libc/lib/ | wc -l)" >> PACKAGE_INFO.md
+        echo "- Note: May have compatibility issues in Lambda environment" >> PACKAGE_INFO.md
+        echo "" >> PACKAGE_INFO.md
+        
+        echo "## Bootstrap Scripts" >> PACKAGE_INFO.md
+        echo "### Full libc (Recommended)" >> PACKAGE_INFO.md
+        echo "\`\`\`bash" >> PACKAGE_INFO.md
+        cat packages/full-libc/bootstrap >> PACKAGE_INFO.md
+        echo "\`\`\`" >> PACKAGE_INFO.md
+
+    - name: Upload Lambda Packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: lambda-packages-${{ github.run_number }}
+        path: |
+          packages/
+          PACKAGE_INFO.md
+        retention-days: 90
+
+    - name: Create Lambda Deployment Zip (if tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        cd packages/full-libc
+        zip -r ../../lambda-deployment-${{ github.ref_name }}.zip .
+        cd ../../packages/default-libc
+        zip -r ../../lambda-deployment-testing-${{ github.ref_name }}.zip .
+
+    - name: Create Release (if tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body: |
+          ## 🚀 Lambda Deployment Packages
+          
+          This release includes AWS Lambda-ready deployment packages:
+          
+          - **lambda-deployment-${{ github.ref_name }}.zip**: Full libc package (RECOMMENDED)
+            - Includes Ubuntu glibc for maximum compatibility
+            - Larger size but works reliably across environments
+          
+          - **lambda-deployment-testing-${{ github.ref_name }}.zip**: Default libc package (testing only)
+            - Smaller size but may have compatibility issues
+            - Use only for testing or specific environments
+          
+          Both packages include:
+          - Application binary in `bin/`
+          - Required libraries in `lib/`  
+          - Lambda-compatible `bootstrap` script
+          
+          ## 📦 Deployment Recommendation
+          
+          **Use the full libc package** (`lambda-deployment-${{ github.ref_name }}.zip`) for production deployments:
+          
+          1. Download the full libc zip file
+          2. Upload to AWS Lambda as a custom runtime
+          3. Set handler to any value (bootstrap script handles execution)
+          4. Configure environment variables as needed
+          
+          ## ⚠️ Compatibility Notes
+          
+          - Full libc package ensures compatibility between Ubuntu build environment and Lambda runtime
+          - Default libc package may fail due to musl vs glibc differences
+          - Always test in Lambda environment before production use
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Assets (if tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./lambda-deployment-${{ github.ref_name }}.zip
+        asset_name: lambda-deployment-${{ github.ref_name }}.zip
+        asset_content_type: application/zip
+
+  docker-package:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and Test Docker Packaging
+      run: |
+        echo "🐳 Building Docker packaging environment..."
+        docker-compose --profile packaging build lambda-packager
+        
+        echo "📦 Running Docker packaging..."
+        docker-compose --profile packaging up --abort-on-container-exit lambda-packager
+        
+        echo "✅ Docker packaging completed"
+
+    - name: Extract Package from Docker
+      run: |
+        # Create a temporary container to extract the packages
+        CONTAINER_ID=$(docker create boost-conan-cmake:packager)
+        docker cp $CONTAINER_ID:/home/builder/project/packages ./docker-packages
+        docker rm $CONTAINER_ID
+        echo "📦 Docker packages extracted"
+
+    - name: Upload Docker Packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-packages-${{ github.run_number }}
+        path: docker-packages/
+        retention-days: 30

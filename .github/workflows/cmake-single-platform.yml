@@ -59,6 +59,21 @@ jobs:
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
+    - name: Package with Dependencies
+      run: |
+        chmod +x scripts/packager
+        ./scripts/packager --default-libc build/HelloWorld
+        echo "📦 Package contents:"
+        ls -la built/
+        echo "🚀 Lambda package ready for deployment"
+
+    - name: Upload Lambda Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: lambda-package-${{ github.run_number }}
+        path: built/
+        retention-days: 30
+
     - name: Test
       working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.

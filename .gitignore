@@ -1,52 +1,15 @@
-.vscode
-.cache
+# Environment files
 .env*
 !.env.example
-bin
+!.env.testing.example
 
-# Prerequisites
-*.d
-
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-### VisualStudioCode ###
-.vscode/*
-.vscode/
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-build
-CMakeFiles
+# Build artifacts
+bin/
+build/
+!build/.keep
+cmake-build*/
+!cmake-build*/.keep
+CMakeFiles/
 DartConfiguration.tcl
 cmake_install.cmake
 CMakeCache.txt
@@ -54,5 +17,109 @@ CPackConfig.cmake
 CPackSourceConfig.cmake
 CTestTestfile.cmake
 Makefile
-cmake_install.cmake
+compile_commands.json
+
+# Conan artifacts
+conan-build/
+.conan/
+.conan2/
+conaninfo.txt
+conanbuild.sh
+conanrun.sh
+conan.lock
+conandata.yml
+
+# C/C++ artifacts
+*.d
+*.slo
+*.lo
+*.o
+*.obj
+*.gch
+*.pch
+*.so
+*.dylib
+*.dll
+*.mod
+*.smod
+*.lai
+*.la
+*.a
+*.lib
+*.exe
+*.out
+*.app
+
+# Security and analysis reports
+security_*.txt
+security_*.json
+security_*.xml
+SECURITY_REPORT.md
+cppcheck.xml
+clang-tidy.txt
+scan-build-*/
+
+# Coverage reports
+coverage/
+*.gcda
+*.gcno
+*.gcov
+lcov.info
+
+# IDE and editor files
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.cache/
+.DS_Store
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+.tmp/
+
+# Package managers and dependencies
+node_modules/
+.npm/
+.yarn/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+pip-log.txt
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Testing artifacts
+Testing/
+*_test
+*_tests
+test_results/
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
 

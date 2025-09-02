@@ -1,0 +1,141 @@
+# Gitleaks configuration for boost-conan-cmake project
+# This configuration reduces false positives while maintaining security coverage
+
+title = "boost-conan-cmake gitleaks config"
+
+[extend]
+# Use default gitleaks rules as base
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)(?:key|api|token|secret|password)(?:[0-9a-z\-_\t .]{0,20})(?:[\s|']|[\s|"]){0,3}(?:=|>|:{1,3}=|\|\|:|<=|=>|:|\?=)(?:'|\"|\s|=|\x60){0,5}([0-9a-z\-_.=]{10,150})(?:['|\"|\n|\r|\s|\x60|;]|$)'''
+secretGroup = 1
+
+[[rules]]
+id = "high-entropy-strings"
+description = "High entropy strings"
+regex = '''[A-Za-z0-9+/]{40,}={0,2}'''
+entropy = 4.3
+secretGroup = 0
+
+[allowlist]
+description = "global allow lists"
+regexes = [
+    '''(?i)example''',
+    '''(?i)test''',
+    '''(?i)demo''',
+    '''(?i)placeholder''',
+    '''(?i)sample''',
+    '''EXAMPLE_''',
+    '''TEST_''',
+    '''YOUR_API_KEY_HERE''',
+    '''your-secret-here''',
+    '''replace-with-actual''',
+    # CMake and build system patterns
+    '''CMAKE_''',
+    '''CONAN_''',
+    '''BUILD_''',
+    # Common C++ patterns that aren't secrets
+    '''iostream''',
+    '''namespace''',
+    '''std::''',
+    '''boost::''',
+    # Documentation and README patterns
+    '''https://github\.com/''',
+    '''https://api\.github\.com/''',
+    # Base64 encoded common strings that aren't secrets
+    '''aGVsbG8gd29ybGQ=''', # "hello world"
+    '''dGVzdA==''',          # "test"
+]
+
+paths = [
+    '''\.md$''',
+    '''\.txt$''',
+    '''\.rst$''',
+    '''\.cmake$''',
+    '''CMakeLists\.txt$''',
+    '''\.yml$''',
+    '''\.yaml$''',
+    # Allow certain patterns in documentation
+    '''README''',
+    '''CHANGELOG''',
+    '''LICENSE''',
+    '''CONTRIBUTING''',
+    '''SECURITY''',
+]
+
+# Specific file-based allowlists
+[[allowlist.files]]
+file = "conanfile.txt"
+regexes = ['''.*'''] # Allow all patterns in conan files
+
+[[allowlist.files]]  
+file = "CMakeLists.txt"
+regexes = [
+    '''CMAKE_.*''',
+    '''CONAN_.*''',
+    '''set\(.*\)''',
+]
+
+[[allowlist.files]]
+file = ".github/workflows/*.yml"
+regexes = [
+    '''secrets\.''',     # GitHub Actions secrets syntax
+    '''env\.''',         # Environment variables  
+    '''matrix\.''',      # Matrix variables
+    '''steps\.''',       # Step references
+    '''github\.''',      # GitHub context
+]
+
+[[allowlist.files]]
+file = "scripts/*.py"
+regexes = [
+    '''#.*''',           # Comments
+    '''""".*"""''',      # Docstrings
+    '''test.*''',        # Test data
+    '''example.*''',     # Example data
+]
+
+[[allowlist.files]]
+file = "scripts/*.sh"
+regexes = [
+    '''#.*''',           # Comments
+    '''echo.*''',        # Echo statements
+    '''log_.*''',        # Log functions
+]
+
+# Paths to completely ignore
+[[allowlist.paths]]
+path = "build/"
+
+[[allowlist.paths]]
+path = "cmake-build*/"
+
+[[allowlist.paths]]
+path = ".git/"
+
+[[allowlist.paths]]
+path = "node_modules/"
+
+[[allowlist.paths]]
+path = "vendor/"
+
+[[allowlist.paths]]
+path = "third_party/"
+
+[[allowlist.paths]]
+path = ".vscode/"
+
+[[allowlist.paths]]
+path = ".idea/"
+
+[[allowlist.paths]]
+path = "*.log"
+
+[[allowlist.paths]]
+path = "*.tmp"
+
+[[allowlist.paths]]
+path = "*.cache"

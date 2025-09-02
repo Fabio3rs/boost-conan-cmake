@@ -13,7 +13,33 @@ set(CMAKE_C_EXTENSIONS ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdata-sections -ffunction-sections")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdata-sections -ffunction-sections")
+
+# Security hardening flags (recommended by security scanner)
+option(ENABLE_HARDENING "Enable security hardening flags" ON)
+if(ENABLE_HARDENING)
+    # Stack protection
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-strong")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector-strong")
+    
+    # Buffer overflow detection  
+    add_compile_definitions(_FORTIFY_SOURCE=2)
+    
+    # Format string protection
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wformat -Wformat-security")
+    
+    # Position independent executable (PIE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIE")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIE")
+    
+    # Linker hardening flags
+    add_link_options("-Wl,-z,relro,-z,now")  # RELRO + immediate binding
+    add_link_options("-pie")                 # PIE linking
+endif()
+
 add_link_options("-Wl,--gc-sections")
+
+set(CONAN_SYSTEM_INCLUDES TRUE)
 
 include(${PROJECT_SOURCE_DIR}/cmake/conan.cmake)
 
@@ -39,6 +65,7 @@ endif ()
 
 link_directories(SYSTEM ${CONAN_LIB_DIRS})
 link_libraries(${CONAN_LIBS})
+include_directories(SYSTEM ${CONAN_INCLUDE_DIRS})
 
 add_executable(HelloWorld src/main.cpp)
 

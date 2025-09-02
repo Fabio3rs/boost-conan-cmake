@@ -1,0 +1,28 @@
+# Security-focused Dockerfile for scanning and analysis
+FROM python:3.12-alpine AS security-base
+
+# Install security tools
+RUN apk add --no-cache \
+    bash \
+    git \
+    curl \
+    grep \
+    jq \
+    ripgrep \
+    findutils \
+    coreutils
+
+# Install Python security tools
+RUN pip install --no-cache-dir \
+    requests \
+    bandit \
+    safety \
+    semgrep
+
+# Create scanner user
+RUN adduser -D -s /bin/bash -u 1000 scanner
+USER scanner
+WORKDIR /workspace
+
+# Default command runs all security checks
+CMD ["bash", "-c", "python3 scripts/cve_security_check.py && ./scripts/security_audit.sh"]
