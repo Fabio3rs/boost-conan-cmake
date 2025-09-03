@@ -23,20 +23,20 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Install Conan
-      run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install conan>=2.0.0
+      id: conan
+      uses: turtlebrowser/get-conan@main
+      with:
+        version: 1.66.0
 
-    - name: Cache Conan
+    - name: Conan version
+      run: echo "${{ steps.conan.outputs.version }}"
+
+    - name: Cache
       id: cache-conan
       uses: actions/cache@v4
       with:
-        path: ~/.conan2
-        key: ${{ runner.os }}-conan2-build-cache
-
-    - name: Setup Conan profile
-      run: |
-        conan profile detect --force
+        path: ~/.conan
+        key: ${{ runner.os }}-conan-build-cache
 
     - name: Set up Clang
       uses: egor-tensin/setup-clang@v1
@@ -44,37 +44,20 @@ jobs:
         version: latest
         platform: x64
 
-    - name: Install build tools
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ninja-build
-
-    - name: Install Conan Dependencies
-      run: |
-        mkdir -p build
-        cd build
-        conan install .. --output-folder=. --build=missing --settings=build_type=${{env.BUILD_TYPE}}
-
     - name: Configure CMake
       env:
         CC: /usr/bin/clang
         CXX: /usr/bin/clang++
-      # Configure CMake in a 'build' subdirectory using conan toolchain
-      run: |
-        cd build
-        cmake .. -G Ninja \
-          -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake \
-          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
-          -DCMAKE_CXX_FLAGS="-std=c++20 -Wall -Wextra"
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
       env:
         CC: /usr/bin/clang
         CXX: /usr/bin/clang++
       # Build your program with the given configuration
-      run: |
-        cd build
-        cmake --build . --config ${{env.BUILD_TYPE}} -j$(nproc)
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Package with Dependencies
       run: |
@@ -92,7 +75,7 @@ jobs:
         retention-days: 30
 
     - name: Test
-      working-directory: build
+      working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest -C ${{env.BUILD_TYPE}}
