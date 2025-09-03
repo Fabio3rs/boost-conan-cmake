@@ -78,6 +78,15 @@ The project includes a specialized packager script demonstrating AWS Lambda depl
 ./scripts/packager --default-libc build/HelloWorld
 ```
 
+> **Note**: This packager has been **modified from the original AWS SDK packager** to work better with Docker workflows. Instead of creating a zip file, it creates a `built/` directory for easier Docker integration.
+>
+> **For traditional zip packaging**, add this command after running the packager:
+> ```bash
+> cd built && zip --symlinks --recurse-paths lambda-package.zip -- *
+> ```
+>
+> **For the original AWS packager**, see: https://github.com/awslabs/aws-lambda-cpp/blob/master/packaging/packager
+
 ### Why Full libc?
 
 The **full libc package is recommended** because:
