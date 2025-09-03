@@ -39,19 +39,32 @@ endif()
 
 add_link_options("-Wl,--gc-sections")
 
-set(CONAN_SYSTEM_INCLUDES TRUE)
-
 # Try Conan 2.x first (with toolchain)
 if(EXISTS "${CMAKE_BINARY_DIR}/conan_toolchain.cmake")
     message(STATUS "Using Conan 2.x toolchain")
     include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
     
-    # Find packages the Conan 2.x way
+    # Find packages - use available targets
     find_package(Boost REQUIRED)
     find_package(fmt REQUIRED)
-    find_package(xlnt REQUIRED)
     
-    set(CONAN_LIBS Boost::boost fmt::fmt xlnt::xlnt)
+    # For xlnt, try to find it but make it optional in case it doesn't provide proper CMake config
+    find_package(xlnt QUIET)
+    
+    if(TARGET xlnt::xlnt)
+        set(CONAN_LIBS Boost::boost fmt::fmt xlnt::xlnt)
+        message(STATUS "Using xlnt::xlnt target")
+    else()
+        # Fallback to trying other possible target names for xlnt
+        if(TARGET xlnt)
+            set(CONAN_LIBS Boost::boost fmt::fmt xlnt)
+            message(STATUS "Using xlnt target")
+        else()
+            # If no CMake targets, xlnt should still be available through link directories
+            set(CONAN_LIBS Boost::boost fmt::fmt)
+            message(STATUS "xlnt target not found, will rely on link directories")
+        endif()
+    endif()
     
 elseif(EXISTS "${CMAKE_BINARY_DIR}/conanbuildinfo.cmake")
     # Fallback to Conan 1.x approach
