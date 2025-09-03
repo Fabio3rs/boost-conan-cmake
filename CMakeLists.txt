@@ -2,15 +2,12 @@ cmake_minimum_required(VERSION 3.16)
 project(HelloWorld CXX)
 
 # Conan Integration:
-# This project supports multiple Conan integration approaches in order of preference:
-# 1. Conan 1.x (default): Uses "cmake" generator, works with CI/CD workflows
-# 2. Conan 2.x (user customization): Uses "CMakeDeps" and "CMakeToolchain" generators
-# 3. Embedded conan.cmake: Downloads dependencies automatically if no Conan setup found
-#
-# To use Conan 2.x instead of default Conan 1.x:
-# - Change conanfile.txt generators to: CMakeDeps, CMakeToolchain
-# - Run: conan install . --output-folder=build --build=missing
-# - Configure: cmake -B build -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
+# This project uses embedded conan.cmake for automatic dependency management by default.
+# Simply run cmake and it will auto-detect settings and build missing dependencies.
+# 
+# Manual Conan approaches are supported as alternatives:
+# - Conan 1.x: Run "conan install .. --build=missing" then cmake
+# - Conan 2.x: Change generators to CMakeDeps/CMakeToolchain, run conan install, then cmake with toolchain
 
 set(CONAN_SYSTEM_INCLUDES TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -50,17 +47,18 @@ endif()
 
 add_link_options("-Wl,--gc-sections")
 
-# Try Conan 1.x first (the default stable approach)
+# Primary approach: Embedded conan.cmake (automatic dependency management)
 if(EXISTS "${CMAKE_BINARY_DIR}/conanbuildinfo.cmake")
-    message(STATUS "Using Conan 1.x approach")
+    # Manual Conan 1.x approach (if user ran conan install manually)
+    message(STATUS "Using manual Conan 1.x approach")
     include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
     conan_basic_setup()
     message(STATUS "CONAN_LIBS: ${CONAN_LIBS}")
-    set(CONAN_LIBS ${CONAN_LIBS})
+    set(DEFAULT_LIBS ${CONAN_LIBS})
     
 elseif(EXISTS "${CMAKE_BINARY_DIR}/conan_toolchain.cmake")
-    # Fallback to Conan 2.x (user customization)
-    message(STATUS "Using Conan 2.x toolchain")
+    # Manual Conan 2.x approach (if user configured for Conan 2.x)
+    message(STATUS "Using manual Conan 2.x toolchain")
     include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
     
     # Find packages - use available targets
@@ -71,23 +69,23 @@ elseif(EXISTS "${CMAKE_BINARY_DIR}/conan_toolchain.cmake")
     find_package(xlnt QUIET)
     
     if(TARGET xlnt::xlnt)
-        set(CONAN_LIBS Boost::boost fmt::fmt xlnt::xlnt)
+        set(DEFAULT_LIBS Boost::boost fmt::fmt xlnt::xlnt)
         message(STATUS "Using xlnt::xlnt target")
     else()
         # Fallback to trying other possible target names for xlnt
         if(TARGET xlnt)
-            set(CONAN_LIBS Boost::boost fmt::fmt xlnt)
+            set(DEFAULT_LIBS Boost::boost fmt::fmt xlnt)
             message(STATUS "Using xlnt target")
         else()
             # If no CMake targets, xlnt should still be available through link directories
-            set(CONAN_LIBS Boost::boost fmt::fmt)
+            set(DEFAULT_LIBS Boost::boost fmt::fmt)
             message(STATUS "xlnt target not found, will rely on link directories")
         endif()
     endif()
     
 else()
-    # Try the embedded conan.cmake approach
-    message(STATUS "Using embedded conan.cmake approach")
+    # Default: Embedded conan.cmake approach (automatic)
+    message(STATUS "Using embedded conan.cmake approach (automatic dependency management)")
     include(${PROJECT_SOURCE_DIR}/cmake/conan.cmake)
 
     conan_cmake_autodetect(CONAN_SETTINGS)
@@ -105,24 +103,24 @@ else()
         include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
         conan_basic_setup()
         message(STATUS "CONAN_LIBS: ${CONAN_LIBS}")
-        set(CONAN_LIBS ${CONAN_LIBS})
+        set(DEFAULT_LIBS ${CONAN_LIBS})
     else ()
         message(FATAL_ERROR "The file conanbuildinfo.cmake doesn't exist, check if conan install was executed.")
     endif ()
 endif()
 
-add_executable(HelloWorld src/main.cpp)
-
-# Link libraries based on the Conan approach used
-if(EXISTS "${CMAKE_BINARY_DIR}/conanbuildinfo.cmake")
-    # Conan 1.x approach - use proper target linking
-    target_link_libraries(HelloWorld ${CONAN_LIBS})
-elseif(EXISTS "${CMAKE_BINARY_DIR}/conan_toolchain.cmake")
-    # Conan 2.x approach - use modern CMake targets
-    target_link_libraries(HelloWorld ${CONAN_LIBS})
+# Setup linking based on the approach used
+if(EXISTS "${CMAKE_BINARY_DIR}/conan_toolchain.cmake")
+    # For manual Conan 2.x approach, use target-based linking only
+    add_executable(HelloWorld src/main.cpp)
+    target_link_libraries(HelloWorld ${DEFAULT_LIBS})
 else()
-    # Embedded conan.cmake approach - use proper target linking
-    target_link_libraries(HelloWorld ${CONAN_LIBS})
+    # For embedded conan.cmake and manual Conan 1.x, use original approach
+    link_directories(SYSTEM ${CONAN_LIB_DIRS})
+    link_libraries(${DEFAULT_LIBS})
+    include_directories(SYSTEM ${CONAN_INCLUDE_DIRS})
+    
+    add_executable(HelloWorld src/main.cpp)
 endif()
 
 include(CTest)
