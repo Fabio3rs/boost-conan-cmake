@@ -1,5 +1,5 @@
 # Security-focused Dockerfile for scanning and analysis
-FROM python:3.12-alpine AS security-base
+FROM python:3.13-alpine AS security-base
 
 # Install security tools
 RUN apk add --no-cache \
