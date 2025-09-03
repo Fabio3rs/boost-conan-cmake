@@ -55,7 +55,7 @@ RUN python3 -m pip install --break-system-packages --no-cache-dir \
     jq
 
 # Create non-root user for security
-RUN useradd --create-home --shell /bin/bash --uid 1000 builder
+RUN useradd --create-home --shell /bin/bash --uid 1001 builder
 USER builder
 WORKDIR /home/builder
 
@@ -98,7 +98,7 @@ RUN apk update && apk upgrade && \
     && rm -rf /var/cache/apk/*
 
 # Create non-root user
-RUN adduser -D -s /bin/bash -u 1001 appuser
+RUN adduser -D -s /bin/bash -u 1002 appuser
 
 # Create Lambda task root directory structure
 ENV LAMBDA_TASK_ROOT=/var/task
