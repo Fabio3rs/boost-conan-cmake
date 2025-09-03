@@ -282,15 +282,21 @@ jobs:
           echo "  Critical vulnerabilities: $POST_CRITICAL"
           echo "  Security degraded: $SECURITY_DEGRADED"
 
-          # Log security issues as warnings instead of failing the workflow
+          # Enhanced status reporting for consistency with security workflow
           if [ "$POST_CRITICAL" -gt 0 ] && [ "$SECURITY_DEGRADED" = "true" ]; then
-            echo "::warning::Dependency update introduces critical security issues!"
-            echo "⚠️ Critical security issues detected - review required"
+            echo "::warning title=Critical Security Issue::Dependency update introduces $POST_CRITICAL critical vulnerabilities"
+            echo "🔴 CRITICAL: Review required before merge"
+            # Don't fail for dependency updates, just warn
+          elif [ "$POST_CRITICAL" -gt 0 ]; then
+            echo "::warning title=Critical Vulnerabilities::$POST_CRITICAL critical vulnerabilities detected"
+            echo "🟡 REVIEW: Critical vulnerabilities present"
           elif [ "$SECURITY_DEGRADED" = "true" ]; then
-            echo "::warning::Security degraded but no critical issues. Review recommended."
-            echo "⚠️ Security degraded - review recommended"
+            echo "::warning title=Security Degraded::Security status degraded compared to pre-update"
+            echo "⚠️ CAUTION: Security degraded - review recommended"
           else
-            echo "✅ Dependency update validation passed"
+            echo "✅ PASSED: Dependency update validation successful"
           fi
 
-          echo "✅ Workflow completed successfully"
+          # Always succeed for dependency updates but provide clear warnings
+          echo "🔍 Dependency update completed with security status reported above"
+          echo "📊 Check security artifacts for detailed analysis"

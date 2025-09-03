@@ -1,144 +1,102 @@
-# Política de Segurança
+# Security Policy - Demo Project
 
-## Versões Suportadas
+## About This Document
 
-Este projeto segue uma política de segurança para as seguintes versões:
+This security policy covers the **boost-conan-cmake** demonstration project, which showcases integration of C++ libraries and security automation tools. As this is primarily an educational/demonstration project, the security policy reflects that scope.
 
-| Versão | Suporte de Segurança |
-|--------|----------------------|
-| main   | ✅ Suporte ativo     |
-| tags   | ✅ Suporte por 90 dias após release |
+## Versions Supported
 
-## Reportando Vulnerabilidades
+This demonstration project maintains security scanning for:
 
-### Como Reportar
+| Version | Security Support |
+|---------|-----------------|
+| main branch | ✅ Active security scanning |
+| tagged releases | ✅ Security scanning for 90 days after release |
 
-Se você descobrir uma vulnerabilidade de segurança, por favor **NÃO** abra uma issue pública. Em vez disso:
+## Reporting Security Issues
 
-1. **Email**: Envie detalhes para fabio3rs@gmail.com
-2. **GitHub Security**: Use o [GitHub Security Advisory](https://github.com/Fabio3rs/boost-conan-cmake/security/advisories) (preferido)
-3. **Assunto**: Use o prefixo `[SECURITY]` no email
+### For Demo Project Issues
 
-### Informações Necessárias
+If you discover a security vulnerability in this demonstration project:
 
-Por favor inclua as seguintes informações no seu reporte:
+1. **GitHub Security**: Use [GitHub Security Advisory](https://github.com/Fabio3rs/boost-conan-cmake/security/advisories) (preferred)
+2. **Email**: Send details to fabio3rs@gmail.com with `[SECURITY-DEMO]` prefix
 
-- **Descrição**: Descrição clara da vulnerabilidade
-- **Impacto**: Potencial impacto de segurança
-- **Reprodução**: Passos detalhados para reproduzir a vulnerabilidade
-- **Ambiente**: Versões do sistema, compilador, dependências
-- **Mitigação**: Sugestões de correção, se houver
+### For Dependencies
 
-### Processo de Resposta
+This demo project uses third-party libraries. For security issues in:
+- **Boost Libraries**: Report to the [Boost Security Team](https://www.boost.org/users/security/)
+- **fmt Library**: Report via [fmt GitHub Security](https://github.com/fmtlib/fmt/security)
+- **xlnt Library**: Report via [xlnt GitHub Issues](https://github.com/tfussell/xlnt/issues)
 
-#### Cronograma
+### Information to Include
 
-- **Confirmação**: 48 horas para confirmação do recebimento
-- **Análise**: 7 dias para análise inicial e classificação de severidade  
-- **Correção**: 
-  - **Crítica**: 24-48 horas
-  - **Alta**: 7 dias
-  - **Média**: 30 dias
-  - **Baixa**: 90 dias
+Please provide:
+- **Description**: Clear description of the vulnerability
+- **Impact**: Potential security impact
+- **Reproduction**: Detailed steps to reproduce
+- **Environment**: System versions, compiler, dependencies
+- **Suggestion**: Fix suggestions if available
 
-#### Classificação de Severidade
+## Response Process
 
-- **Crítica**: Execução remota de código, escalação de privilégios
-- **Alta**: Bypass de autenticação, exposição de dados sensíveis
-- **Média**: Injeção limitada, DoS, vazamento de informações  
-- **Baixa**: Problemas de configuração, informational
+### Timeline
+- **Acknowledgment**: 48 hours for receipt confirmation
+- **Analysis**: 7 days for initial analysis and severity classification  
+- **Resolution**: 
+  - **Critical**: 24-48 hours
+  - **High**: 7 days
+  - **Medium**: 30 days
+  - **Low**: 90 days
 
-### Política de Divulgação
+Note: Response times may be longer for this demo project compared to production projects.
 
-1. **Correção Privada**: Desenvolvemos correção em repositório privado
-2. **Verificação**: Testamos a correção com o reportador (se disponível)
-3. **Release**: Publicamos correção em release de segurança
-4. **Advisory**: Publicamos advisory com créditos ao descobridor
-5. **Divulgação**: Após 90 dias, detalhes podem ser divulgados publicamente
+### Severity Classification
+- **Critical**: Remote code execution, privilege escalation
+- **High**: Authentication bypass, sensitive data exposure
+- **Medium**: Limited injection, DoS, information leakage
+- **Low**: Configuration issues, informational findings
 
-### Reconhecimento
+## Demonstration Security Features
 
-Reportadores de vulnerabilidades válidas serão reconhecidos em:
+This demo project showcases several security automation features:
 
-- Release notes da correção
-- GitHub Security Advisory
-- Arquivo CONTRIBUTORS.md
-- Hall of Fame de segurança (quando implementado)
+### Automated Security Scanning
+- ✅ **GitHub Dependabot**: Automated dependency updates
+- ✅ **CVE Scanner**: Vulnerability checking with OSV.dev integration
+- ✅ **Gitleaks**: Secrets detection in code and history
+- ✅ **Trivy Scanner**: Container and filesystem vulnerability analysis
+- ✅ **Semgrep**: Static code security analysis
+- ✅ **Hadolint**: Dockerfile security best practices
+- ✅ **SARIF Upload**: GitHub Security tab integration
 
-## Recursos de Segurança do Projeto
-
-### Análise Contínua
-
-- ✅ **GitHub Dependabot**: Atualizações automáticas de dependências
-- ✅ **CVE Scanner**: Verificação de vulnerabilidades conhecidas  
-- ✅ **Trivy Scanner**: Análise de containers e filesystems
-- ✅ **Security Audit**: Verificação de padrões de código inseguros
-- ✅ **SARIF Upload**: Integração com GitHub Security tab
-
-### Build Seguro
-
-- ✅ **Clang/GCC**: Compiladores modernos com warnings habilitados
-- ✅ **Static Analysis**: clang-tidy para análise estática
-- ✅ **Dead Code Removal**: Eliminação de código não utilizado
-- ⚠️ **Hardening Flags**: Em processo de implementação
+### Build Security Features
+- ✅ **Hardening Flags**: Stack protection, format security, PIE
+- ✅ **Static Analysis**: clang-tidy for code quality
+- ✅ **Dependency Validation**: Conan package integrity checking
+- ✅ **Secure Defaults**: Security-focused CMake configuration
 
 ### Container Security
+- ✅ **Multi-stage Builds**: Reduced attack surface
+- ✅ **Minimal Runtime**: Alpine-based runtime images
+- ✅ **Non-root Execution**: Security-focused container design
+- ✅ **Dependency Scanning**: Base image vulnerability analysis
 
-- ✅ **Multi-stage Builds**: Redução de superficie de ataque
-- ✅ **Minimal Runtime**: Base Alpine para runtime
-- ✅ **No Root**: Execução como usuário não-privilegiado
-- ✅ **Dependency Scanning**: Análise de imagens base
+## Demo Usage
 
-## Configurações Recomendadas
+This project demonstrates security scanning integration patterns. For production use:
+- Review and adapt security configurations to your needs
+- Implement additional security controls as required
+- Conduct regular security assessments beyond automated scanning
+- Follow your organization's security policies and procedures
 
-### Para Desenvolvimento
-
-```bash
-# Clone com verificação de assinatura
-git clone --recurse-submodules https://github.com/Fabio3rs/boost-conan-cmake.git
-cd boost-conan-cmake
-
-# Verificar integridade das dependências
-conan install . --build=missing
-
-# Build com flags de segurança
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_HARDENING=ON
-```
-
-### Para Produção
-
-```bash
-# Use sempre tags verificadas
-git checkout <tag-verificada>
-
-# Build com máximas proteções
-cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HARDENING=ON -DENABLE_SANITIZERS=OFF
-
-# Verificar binários
-checksec --file=HelloWorld
-```
-
-## Dependências e Auditoria
-
-### Fontes Confiáveis
-
-- **Conan Center**: Apenas pacotes do Conan Center oficial
-- **Ubuntu/Alpine**: Imagens base oficiais com atualizações de segurança
-- **GitHub Actions**: Actions verificadas e com hash fixo
-
-### Verificação Regular
-
-- **Semanal**: Scan automático de CVEs
-- **Release**: Auditoria completa antes de cada release  
-- **Dependências**: Verificação de integridade de todas as dependências
-
-## Contato
+## Contact
 
 - **Maintainer**: Fabio3rs
-- **Security Email**: fabio3rs@gmail.com
+- **Demo Project Email**: fabio3rs@gmail.com
 - **GitHub**: [@Fabio3rs](https://github.com/Fabio3rs)
 
 ---
 
-**Última atualização**: Setembro 2025
-**Próxima revisão**: Janeiro 2026
+**Last Updated**: December 2024  
+**Next Review**: Quarterly (demo project schedule)

@@ -277,6 +277,7 @@ jobs:
           });
 
     - name: Set Job Status
+      id: final-status
       run: |
         TOTAL_CRITICAL=${{ steps.parse-results.outputs.total_critical || 0 }}
         TOTAL_HIGH=${{ steps.parse-results.outputs.total_high || 0 }}
@@ -292,22 +293,63 @@ jobs:
         echo "Low: $TOTAL_LOW"
         echo "Potential Secrets: $GITLEAKS_SECRETS"
 
+        # Set outputs for downstream workflows
+        echo "security_status=passed" >> $GITHUB_OUTPUT
+        echo "critical_count=$TOTAL_CRITICAL" >> $GITHUB_OUTPUT
+        echo "high_count=$TOTAL_HIGH" >> $GITHUB_OUTPUT
+        echo "medium_count=$TOTAL_MEDIUM" >> $GITHUB_OUTPUT
+        echo "low_count=$TOTAL_LOW" >> $GITHUB_OUTPUT
+        echo "secrets_count=$GITLEAKS_SECRETS" >> $GITHUB_OUTPUT
+
         # Fail the job if critical vulnerabilities are found
         if [ "$TOTAL_CRITICAL" -gt 0 ]; then
           echo "❌ Critical vulnerabilities detected!"
+          echo "security_status=failed_critical" >> $GITHUB_OUTPUT
           exit 1
         elif [ "$TOTAL_HIGH" -gt 0 ]; then
           echo "⚠️ High severity vulnerabilities detected"
           echo "Consider addressing these before release"
+          echo "security_status=warning_high" >> $GITHUB_OUTPUT
         elif [ "$GITLEAKS_SECRETS" -gt 0 ]; then
           echo "⚠️ Potential secrets detected in code"
           echo "Review gitleaks report and remove any exposed secrets"
+          echo "security_status=warning_secrets" >> $GITHUB_OUTPUT
         elif [ "$TOTAL_MEDIUM" -gt 10 ]; then
-          echo "⚠️ Many medium severity issues detected"
+          echo "⚠️ Many medium security issues detected"
           echo "Consider addressing the most critical ones"
+          echo "security_status=warning_medium" >> $GITHUB_OUTPUT
         else
           echo "✅ Security scan passed - no critical issues detected"
         fi
+
+    # Export security status for potential reuse by dependabot workflow
+    - name: Export Security Status
+      if: always()
+      run: |
+        mkdir -p security-status
+        cat > security-status/security-summary.json << EOF
+        {
+          "status": "${{ steps.final-status.outputs.security_status }}",
+          "scan_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "commit_sha": "${{ github.sha }}",
+          "vulnerabilities": {
+            "critical": ${{ steps.final-status.outputs.critical_count }},
+            "high": ${{ steps.final-status.outputs.high_count }},
+            "medium": ${{ steps.final-status.outputs.medium_count }},
+            "low": ${{ steps.final-status.outputs.low_count }},
+            "secrets": ${{ steps.final-status.outputs.secrets_count }}
+          }
+        }
+        EOF
+        echo "Security status exported for potential dependabot use"
+
+    - name: Upload Security Status
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-status-${{ github.run_number }}
+        path: security-status/
+        retention-days: 7
 
   # Container image vulnerability scanning
   container-security:

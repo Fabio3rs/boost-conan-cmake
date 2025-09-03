@@ -1,62 +1,74 @@
 # boost-conan-cmake
 
-Modern C++20/23 project template with Conan package management, CMake build system, and Lambda-ready deployment packaging.
+**Integration demonstration** showing modern C++17 development with Conan package management, CMake build system, and AWS Lambda deployment packaging.
 
-## 🚀 Features
+## 🎯 About This Project
 
-- **C++20/23 Support**: Modern C++ standards with Clang toolchain
-- **Dependency Management**: Conan 2.x for robust package management
-- **Build System**: CMake with Ninja generator for fast builds
-- **Lambda Deployment**: AWS Lambda-compatible packaging with dependency bundling
-- **Security First**: Comprehensive CVE scanning and security auditing
-- **Docker Support**: Multi-stage builds with Alpine runtime
-- **CI/CD Ready**: GitHub Actions workflows with security validation
+This is a **demonstration project** showcasing the integration of popular C++ libraries and tools:
+- **Boost Libraries**: UUID, Regex, Algorithm, JSON, Timer, Filesystem
+- **fmt Library**: Modern C++ formatting with colors and performance  
+- **xlnt Library**: Excel file creation and manipulation
+- **Conan Package Manager**: Dependency management with Conan 1.66
+- **CMake Build System**: Modern CMake with security hardening flags
+- **AWS Lambda Packaging**: Cross-platform deployment packaging
+- **Security Automation**: CVE scanning and code security auditing
 
-## 📦 Dependencies
+## 🚀 What This Demo Shows
 
-- **Boost 1.84.0**: Modern Boost libraries
+- **C++17 Integration**: Practical examples using modern C++ features
+- **Library Integration**: Working examples of Boost, fmt, and xlnt libraries
+- **Package Management**: Conan-based dependency management
+- **Build Automation**: CMake configuration with security hardening
+- **Lambda Packaging**: AWS Lambda deployment with dependency bundling
+- **Security Scanning**: Automated CVE and security auditing
+- **Docker Containerization**: Multi-stage builds for deployment
+
+## 📦 Demo Application
+
+The demo application (`HelloWorld`) showcases practical usage of all integrated libraries:
+
+### Library Demonstrations
+- **Boost.UUID**: Unique identifier generation
+- **Boost.Regex**: Email pattern matching and extraction
+- **Boost.Algorithm**: String processing and manipulation  
+- **Boost.JSON**: JSON creation and serialization
+- **Boost.Timer**: Performance measurement and timing
+- **Boost.Filesystem**: File operations and path handling
+- **fmt Library**: Colored console output and formatting
+- **xlnt Library**: Excel workbook creation with formulas and formatting
+
+### Dependencies Used
+- **Boost 1.84.0**: Core Boost libraries
 - **fmt 10.2.1**: Fast and safe formatting library  
 - **xlnt 1.5.0**: Excel file processing
 
-## 🛠️ Quick Start
+## 🛠️ Building the Demo
 
-### Using Make (Recommended)
+### Prerequisites
+- C++17 compatible compiler (GCC, Clang, or MSVC)
+- CMake 3.16 or higher
+- Python 3.6+ for Conan
+- Conan 1.66.0
 
-```bash
-# Build the project
-make build
-
-# Package for Lambda deployment (includes full glibc)
-make package
-
-# Package for testing only (may have compatibility issues)
-make package-default
-
-# Run security analysis
-make security
-
-# Docker packaging
-make docker-package
-
-# Show all available targets
-make help
-```
-
-### Manual Build
+### Quick Build
 
 ```bash
-# Install dependencies
+# Install Conan if not already installed
+pip install conan==1.66.0
+
+# Install dependencies and build
 mkdir build && cd build
-conan install .. --output-folder=. --build=missing --settings=build_type=Release
-
-# Configure and build
-cmake .. -G Ninja -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake
+conan install .. --build=missing --settings=build_type=Release
+cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build . --config Release
+
+# Run the demo
+./HelloWorld
 ```
 
-## 📦 Lambda Packaging
+## 📦 AWS Lambda Deployment Example
 
-This project includes a specialized `packager` script for AWS Lambda deployment with **full glibc compatibility**:
+The project includes a specialized packager script demonstrating AWS Lambda deployment:
 
 ```bash
 # Package with full libc (RECOMMENDED - includes Ubuntu glibc)
@@ -119,88 +131,56 @@ docker-compose up dev
 docker-compose --profile security up security-scanner
 ```
 
-## 🛡️ Security
+## 🛡️ Security Scanning Demo
 
-### Automated Security Scanning
+The project demonstrates automated security scanning integration:
 
+### Security Tools Showcased
 - **CVE Scanning**: Python-based CVE checker with OSV.dev integration
 - **Code Auditing**: Bash-based security pattern detection  
-- **Dependency Validation**: Conan package vulnerability checking
 - **Container Scanning**: Trivy-based image vulnerability assessment
+- **Secrets Detection**: Gitleaks integration for exposed secrets
+- **Static Analysis**: Semgrep and cppcheck for code quality
 
-```bash
-# Run all security checks
-make security
-
-# Docker security scanning
-make docker-security
-```
-
-### CI/CD Security Pipeline
-
-- Automated dependency updates via Dependabot
-- Security-focused PR validation
-- CVE monitoring with failure thresholds
+### GitHub Actions Integration
+- Automated security scans on PRs and main branch
+- Dependabot integration with security validation  
 - SARIF report generation for GitHub Security tab
+- Security status reporting and artifact management
 
-## 🔧 Development
+## 🔧 Build Configuration
 
-### Code Quality
+### Compiler and Standards
+- **C++17 Standard**: Modern C++ with security hardening flags
+- **Compiler Support**: GCC, Clang, and MSVC compatibility
+- **Security Features**: Stack protection, format security, PIE enabled
+- **Static Analysis**: clang-tidy integration for code quality
 
-- **C++20/23 Standards**: Following C++ Core Guidelines
-- **NASA Power of Ten**: Safety-critical coding practices
-- **Static Analysis**: clang-tidy and cppcheck integration
-- **Formatting**: clang-format with consistent style
-
-### Environment Setup
-
-```bash
-# Install system dependencies
-make install-deps
-
-# Format code
-make format
-
-# Run static analysis
-make analyze
-```
-
-## 📊 CI/CD Workflows
-
-### Build Pipeline
-- Multi-platform CMake builds
-- Conan dependency caching
-- Test execution with CTest
-
-### Security Pipeline  
-- Weekly vulnerability scans
-- Dependency update validation
-- Container image security assessment
-- Automated security reporting
-
-### Deployment Pipeline
-- Lambda package generation
-- Docker image building
-- Artifact management
-
-## 🎯 Project Structure
-
+### Project Structure Example
 ```
 boost-conan-cmake/
-├── src/                    # Source code
-├── scripts/               # Utility scripts
-│   ├── packager          # Lambda packaging script
+├── src/main.cpp          # Demo application showcasing all libraries
+├── scripts/              # Utility scripts
+│   ├── packager         # Lambda packaging script
 │   ├── cve_security_check.py
 │   └── security_audit.sh
-├── .github/              # GitHub Actions workflows
-│   └── workflows/
-├── docker-compose.yml    # Multi-service development
-├── Dockerfile           # Multi-stage production build
-├── CMakeLists.txt      # Build configuration
-├── conanfile.txt       # Dependencies
-└── Makefile            # Build automation
+├── .github/workflows/   # CI/CD demonstrations
+├── CMakeLists.txt      # Build configuration with hardening
+├── conanfile.txt       # Conan dependencies
+└── Dockerfile          # Multi-stage build example
 ```
+
+## 🎓 Learning Outcomes
+
+This demonstration project shows practical examples of:
+- Modern C++17 development practices
+- Package manager integration (Conan)
+- Build system configuration (CMake with security hardening)
+- Library integration (Boost, fmt, xlnt)
+- AWS Lambda packaging for C++ applications
+- Automated security scanning and CI/CD workflows
+- Docker containerization for C++ applications
 
 ## 📝 License
 
-Licensed under the Apache License 2.0. See the packager script for AWS Lambda C++ runtime licensing terms.
+Licensed under the Apache License 2.0. This is a demonstration project showcasing integration patterns - see individual library documentation for production usage guidelines.
