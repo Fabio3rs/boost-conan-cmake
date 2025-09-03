@@ -59,13 +59,18 @@ jobs:
         wget -O /tmp/hadolint "https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64"
         sudo install /tmp/hadolint /usr/local/bin/
         
-        # Install gitleaks for secrets scanning
-        wget -O /tmp/gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_8.18.4_linux_x64.tar.gz"
+        # Install gitleaks for secrets scanning using GitHub CLI for reliable latest version
+        # GitHub Actions runners have gh CLI pre-installed and authenticated
+        GITLEAKS_VERSION=$(gh release view --repo gitleaks/gitleaks --json tagName --jq '.tagName')
+        echo "Installing gitleaks version: $GITLEAKS_VERSION"
+        wget -O /tmp/gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION#v}_linux_x64.tar.gz"
         tar -xzf /tmp/gitleaks.tar.gz -C /tmp
         sudo install /tmp/gitleaks /usr/local/bin/
         
         # Install semgrep for static analysis
         python3 -m pip install semgrep
+      env:
+        GH_TOKEN: ${{ github.token }}
 
     - name: Make scripts executable
       run: |
@@ -254,22 +259,14 @@ jobs:
           
           comment += `📋 **Detailed reports available in workflow artifacts**\n`;
           
+          // Add appropriate action message based on vulnerability count
+          const vulnCount = '${{ steps.parse-results.outputs.vuln_count }}';
           if (critical > 0) {
             comment += `\n⚠️ **Action Required**: Critical vulnerabilities detected. Please review and fix before merging.\n`;
-          }
-
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
-
-          const vulnCount = '${{ steps.parse-results.outputs.vuln_count }}';
-          if (vulnCount > 0) {
-            comment += '\n⚠️ **Security issues detected.** Please review before merging.\n';
+          } else if (vulnCount > 0) {
+            comment += `\n⚠️ **Security issues detected.** Please review before merging.\n`;
           } else {
-            comment += '\n✅ **No critical security issues detected.**\n';
+            comment += `\n✅ **No critical security issues detected.**\n`;
           }
 
           github.rest.issues.createComment({
