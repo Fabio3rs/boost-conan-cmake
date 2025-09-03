@@ -115,18 +115,14 @@ add_executable(HelloWorld src/main.cpp)
 
 # Link libraries based on the Conan approach used
 if(EXISTS "${CMAKE_BINARY_DIR}/conanbuildinfo.cmake")
-    # Conan 1.x approach - use legacy setup
-    link_directories(SYSTEM ${CONAN_LIB_DIRS})
-    link_libraries(${CONAN_LIBS})
-    include_directories(SYSTEM ${CONAN_INCLUDE_DIRS})
+    # Conan 1.x approach - use proper target linking
+    target_link_libraries(HelloWorld ${CONAN_LIBS})
 elseif(EXISTS "${CMAKE_BINARY_DIR}/conan_toolchain.cmake")
     # Conan 2.x approach - use modern CMake targets
     target_link_libraries(HelloWorld ${CONAN_LIBS})
 else()
-    # Embedded conan.cmake approach - use legacy setup
-    link_directories(SYSTEM ${CONAN_LIB_DIRS})
-    link_libraries(${CONAN_LIBS})
-    include_directories(SYSTEM ${CONAN_INCLUDE_DIRS})
+    # Embedded conan.cmake approach - use proper target linking
+    target_link_libraries(HelloWorld ${CONAN_LIBS})
 endif()
 
 include(CTest)

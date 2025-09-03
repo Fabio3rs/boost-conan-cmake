@@ -48,9 +48,10 @@ ENV CXX=clang++-18
 ENV CXXFLAGS="-std=c++20 -Wall -Wextra -Wpedantic -march=native -O2 -DNDEBUG"
 ENV CFLAGS="-Wall -Wextra -Wpedantic -march=native -O2 -DNDEBUG"
 
-# Install Conan 2.x (modern version)
-RUN python3 -m pip install --break-system-packages --no-cache-dir \
-    conan>=2.0.0 \
+# Upgrade pip first, then install Conan 1.x (stable version)
+RUN python3 -m pip install --upgrade pip && \
+    python3 -m pip install --break-system-packages --no-cache-dir \
+    conan==1.66.0 \
     requests \
     jq
 
@@ -59,18 +60,17 @@ RUN useradd --create-home --shell /bin/bash --uid 1001 builder
 USER builder
 WORKDIR /home/builder
 
-# Configure Conan
-RUN conan profile detect --force
+# Configure Conan 1.x
+RUN conan profile new default --detect --force
 
 # Copy project files
 COPY --chown=builder:builder . /home/builder/project
 WORKDIR /home/builder/project
 
-# Install dependencies and build
+# Install dependencies and build using Conan 1.x approach
 RUN mkdir -p build && cd build && \
-    conan install .. --output-folder=. --build=missing --settings=build_type=Release && \
+    conan install .. --build=missing --settings=build_type=Release && \
     cmake .. -G Ninja \
-        -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_CXX_FLAGS="-march=native -fdata-sections -ffunction-sections" \
         -DCMAKE_C_FLAGS="-march=native -fdata-sections -ffunction-sections" \
