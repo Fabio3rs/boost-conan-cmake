@@ -4,5 +4,10 @@ fmt/10.2.1
 xlnt/1.5.0
 
 [generators]
-cmake
+CMakeDeps
+CMakeToolchain
+
+[options]
+
+[imports]
 
