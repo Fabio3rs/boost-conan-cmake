@@ -83,7 +83,7 @@ RUN chmod +x scripts/packager && \
     ls -la built/
 
 # Runtime stage - Alpine for minimal attack surface
-FROM alpine:3.19 AS runtime
+FROM alpine:3.22 AS runtime
 
 LABEL maintainer="boost-conan-cmake-team"
 LABEL description="Runtime environment for boost-conan-cmake application"
