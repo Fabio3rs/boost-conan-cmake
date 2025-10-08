@@ -439,21 +439,21 @@ jobs:
         exit-code: '0' # Don't fail the job
 
     - name: Upload container vulnerability results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       if: always()
       with:
         sarif_file: ubuntu-image-vulnerabilities.sarif
       continue-on-error: true
 
     - name: Upload Alpine vulnerability results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       if: always()
       with:
         sarif_file: alpine-image-vulnerabilities.sarif
       continue-on-error: true
 
     - name: Upload filesystem scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       if: always()
       with:
         sarif_file: filesystem-vulnerabilities.sarif
