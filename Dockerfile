@@ -48,9 +48,8 @@ ENV CXX=clang++-18
 ENV CXXFLAGS="-std=c++20 -Wall -Wextra -Wpedantic -march=native -O2 -DNDEBUG"
 ENV CFLAGS="-Wall -Wextra -Wpedantic -march=native -O2 -DNDEBUG"
 
-# Upgrade pip first, then install Conan 1.x (stable version)
-RUN python3 -m pip install --break-system-packages --upgrade pip && \
-    python3 -m pip install --break-system-packages --no-cache-dir \
+# Install Conan 1.x without upgrading pip (pip 24.0 is sufficient)
+RUN python3 -m pip install --break-system-packages --no-cache-dir \
     conan==1.66.0 \
     requests \
     jq
@@ -79,7 +78,7 @@ RUN mkdir -p build && cd build && \
 
 # Package dependencies using packager script (includes full libc for compatibility)
 RUN chmod +x scripts/packager && \
-    ./scripts/packager build/HelloWorld && \
+    ./scripts/packager build/bin/HelloWorld && \
     ls -la built/
 
 # Runtime stage - Alpine for minimal attack surface

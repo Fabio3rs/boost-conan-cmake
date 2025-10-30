@@ -62,7 +62,7 @@ jobs:
     - name: Package with Dependencies
       run: |
         chmod +x scripts/packager
-        ./scripts/packager --default-libc ${{github.workspace}}/build/HelloWorld
+        ./scripts/packager --default-libc ${{github.workspace}}/build/bin/HelloWorld
         echo "📦 Package contents:"
         ls -la built/
         echo "🚀 Lambda package ready for deployment"
