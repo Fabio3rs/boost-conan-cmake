@@ -59,16 +59,18 @@ RUN useradd --create-home --shell /bin/bash --uid 1001 builder
 USER builder
 WORKDIR /home/builder
 
-# Configure Conan 1.x
-RUN conan profile new default --detect --force
-
-# Copy project files
+# Copy project files first (needed for custom conan settings)
 COPY --chown=builder:builder . /home/builder/project
 WORKDIR /home/builder/project
 
-# Install dependencies and build using Conan 1.x approach
+# Configure Conan 1.x with custom settings to support clang-18
+RUN conan profile new default --detect --force && \
+    mkdir -p ~/.conan && \
+    cp ci/conan_conf/settings.yml ~/.conan/settings.yml
+
+# Build using CMake automatic dependency management (no manual conan install)
+# CMake will automatically detect settings and build missing packages via conan.cmake
 RUN mkdir -p build && cd build && \
-    conan install .. --build=missing --settings=build_type=Release && \
     cmake .. -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_CXX_FLAGS="-march=native -fdata-sections -ffunction-sections" \
