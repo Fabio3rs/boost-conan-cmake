@@ -49,7 +49,7 @@ ENV CXXFLAGS="-std=c++20 -Wall -Wextra -Wpedantic -march=native -O2 -DNDEBUG"
 ENV CFLAGS="-Wall -Wextra -Wpedantic -march=native -O2 -DNDEBUG"
 
 # Upgrade pip first, then install Conan 1.x (stable version)
-RUN python3 -m pip install --upgrade pip && \
+RUN python3 -m pip install --break-system-packages --upgrade pip && \
     python3 -m pip install --break-system-packages --no-cache-dir \
     conan==1.66.0 \
     requests \
