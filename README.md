@@ -50,20 +50,45 @@ The demo application (`HelloWorld`) showcases practical usage of all integrated 
 - Python 3.6+ for Conan
 - Conan 1.66.0
 
-### Quick Build
+### Automatic Build (Recommended)
+
+The CMake build system automatically handles all dependencies:
 
 ```bash
-# Install Conan if not already installed
-pip install conan==1.66.0
-
-# Install dependencies and build
+# Clone and build - CMake will auto-install dependencies
 mkdir build && cd build
-conan install .. --build=missing --settings=build_type=Release
 cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build . --config Release
 
 # Run the demo
 ./HelloWorld
+```
+
+**No manual conan install needed!** CMake automatically:
+- Detects your system configuration
+- Downloads and builds missing Conan packages
+- Configures all dependencies
+
+### Manual Conan Approaches (Optional)
+
+If you prefer manual control over dependencies:
+
+#### Option 1: Conan 1.x
+```bash
+pip install conan==1.66.0
+mkdir build && cd build
+conan install .. --build=missing --settings=build_type=Release
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --config Release
+```
+
+#### Option 2: Conan 2.x
+```bash
+pip install conan
+# Update conanfile.txt generators to: CMakeDeps, CMakeToolchain
+conan install . --output-folder=build --build=missing
+cmake -B build -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
+cmake --build build --config Release
 ```
 
 ## 📦 AWS Lambda Deployment Example

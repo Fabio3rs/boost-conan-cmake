@@ -48,29 +48,30 @@ ENV CXX=clang++-18
 ENV CXXFLAGS="-std=c++20 -Wall -Wextra -Wpedantic -march=native -O2 -DNDEBUG"
 ENV CFLAGS="-Wall -Wextra -Wpedantic -march=native -O2 -DNDEBUG"
 
-# Install Conan 2.x (modern version)
+# Install Conan 1.x without upgrading pip (pip 24.0 is sufficient)
 RUN python3 -m pip install --break-system-packages --no-cache-dir \
-    conan>=2.0.0 \
+    conan==1.66.0 \
     requests \
     jq
 
 # Create non-root user for security
-RUN useradd --create-home --shell /bin/bash --uid 1000 builder
+RUN useradd --create-home --shell /bin/bash --uid 1001 builder
 USER builder
 WORKDIR /home/builder
 
-# Configure Conan
-RUN conan profile detect --force
-
-# Copy project files
+# Copy project files first (needed for custom conan settings)
 COPY --chown=builder:builder . /home/builder/project
 WORKDIR /home/builder/project
 
-# Install dependencies and build
+# Configure Conan 1.x with custom settings to support clang-18
+RUN conan profile new default --detect --force && \
+    mkdir -p ~/.conan && \
+    cp ci/conan_conf/settings.yml ~/.conan/settings.yml
+
+# Build using CMake automatic dependency management (no manual conan install)
+# CMake will automatically detect settings and build missing packages via conan.cmake
 RUN mkdir -p build && cd build && \
-    conan install .. --output-folder=. --build=missing --settings=build_type=Release && \
     cmake .. -G Ninja \
-        -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_CXX_FLAGS="-march=native -fdata-sections -ffunction-sections" \
         -DCMAKE_C_FLAGS="-march=native -fdata-sections -ffunction-sections" \
@@ -79,7 +80,7 @@ RUN mkdir -p build && cd build && \
 
 # Package dependencies using packager script (includes full libc for compatibility)
 RUN chmod +x scripts/packager && \
-    ./scripts/packager build/HelloWorld && \
+    ./scripts/packager build/bin/HelloWorld && \
     ls -la built/
 
 # Runtime stage - Alpine for minimal attack surface
@@ -98,7 +99,7 @@ RUN apk update && apk upgrade && \
     && rm -rf /var/cache/apk/*
 
 # Create non-root user
-RUN adduser -D -s /bin/bash -u 1001 appuser
+RUN adduser -D -s /bin/bash -u 1002 appuser
 
 # Create Lambda task root directory structure
 ENV LAMBDA_TASK_ROOT=/var/task
