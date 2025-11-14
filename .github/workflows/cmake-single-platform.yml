@@ -68,7 +68,7 @@ jobs:
         echo "🚀 Lambda package ready for deployment"
 
     - name: Upload Lambda Package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: lambda-package-${{ github.run_number }}
         path: built/

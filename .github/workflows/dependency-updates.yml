@@ -230,7 +230,7 @@ jobs:
           echo "- Security issues are logged as warnings and don't block workflow execution" >> update_summary.md
 
       - name: Upload Security Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: dependency-update-reports-${{ github.run_number }}

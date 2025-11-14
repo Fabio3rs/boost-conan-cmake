@@ -54,7 +54,7 @@ jobs:
         echo "📊 Package size: $(du -sh lambda-package | cut -f1)"
 
     - name: Upload Lambda Package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: lambda-package-${{ github.run_number }}
         path: lambda-package/
