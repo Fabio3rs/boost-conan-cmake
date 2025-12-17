@@ -33,7 +33,7 @@ jobs:
 
     - name: Cache
       id: cache-conan
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.conan
         key: ${{ runner.os }}-conan-build-cache
